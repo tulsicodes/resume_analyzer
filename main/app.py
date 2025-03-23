@@ -1,15 +1,21 @@
-# Import os module for file system operations
-import os
 # Import sys module for system path modifications
 import sys
-# Add parent directory to system path for module imports
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Import os module for file system operations
+import os
 # Import Streamlit for web application interface
 import streamlit as st
-# Import TextProcessor for text extraction from files
-from lib.text_processor import TextProcessor
-# Import GroqHandler for text analysis via Groq API
+# Add parent directory to system path for module imports
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Import GroqHandler for API interactions
 from lib.groq_handler import GroqHandler
+# Import TextProcessor for text extraction
+from lib.text_processor import TextProcessor
+# Import ResumeAnalyzer for resume analysis
+from lib.resume_analyzer import ResumeAnalyzer
+# Import Config for configuration settings
+from utils.config import Config
+# Import PromptLoader for prompt management
+from utils.prompt_loader import PromptLoader
 
 def main():
     """Main function to run the Resume Analyzer web application."""
@@ -21,6 +27,27 @@ def main():
     
     # Create file uploader widget for PDF and DOCX files
     uploaded_file = st.file_uploader("Upload Resume", type=["pdf", "docx"])
+    
+    # Create three columns for input selections
+    col1, col2, col3 = st.columns(3)
+    
+    # Designation selection in first column
+    with col1:
+        designation = st.selectbox("Select Desired Designation", 
+                                 ["Data Scientist", "Data Analyst", "MLOps Engineer", 
+                                  "Machine Learning Engineer"])
+    
+    # Experience level selection in second column
+    with col2:
+        experience = st.selectbox("Select Experience Level", 
+                                ["Fresher", "<1 Year Experience", "1-2 Years Experience", 
+                                 "2-5 Years Experience", "5-8 Years Experience", 
+                                 "8-10 Years Experience"])
+    
+    # Domain selection in third column
+    with col3:
+        domain = st.selectbox("Select Domain", 
+                            ["Finance", "Healthcare", "Automobile", "Real Estate"])
     
     # Check if file is uploaded and analyze button is clicked
     if uploaded_file and st.button("Analyze"):
@@ -35,33 +62,37 @@ def main():
             f.write(uploaded_file.getbuffer())
         
         # Create TextProcessor instance and extract text
-        processor = TextProcessor()
-        extracted_text = processor.extract_text(temp_path, file_extension)
+        text_processor = TextProcessor()
+        extracted_text = text_processor.extract_text(temp_path, file_extension)
         
         # Remove temporary file
         os.remove(temp_path)
         
-        # Proceed if text was successfully extracted
+        # Proceed if text was extracted successfully
         if extracted_text:
-            # Create GroqHandler instance for analysis
-            groq = GroqHandler()
+            # Initialize GroqHandler for API calls
+            grok_handler = GroqHandler()
             
-            # Define analysis prompt
-            prompt = "Analyze this resume text and summarize its key points."
+            # Initialize PromptLoader with prompts file from Config
+            prompt_loader = PromptLoader(Config.PROMPTS_FILE)
+            
+            # Initialize ResumeAnalyzer with handlers
+            resume_analyzer = ResumeAnalyzer(grok_handler, prompt_loader)
             
             # Show spinner during analysis
-            with st.spinner("Analyzing..."):
-                # Get analysis from Groq API
-                analysis = groq.analyze_text(prompt, extracted_text)
+            with st.spinner("Analyzing resume... Please wait"):
+                # Analyze resume with selected parameters
+                analysis = resume_analyzer.analyze_resume(extracted_text, 
+                                                        designation, experience, domain)
             
             # Display analysis header
-            st.write("Analysis:")
+            st.markdown("# Resume Analysis")
             
-            # Display analysis in markdown format
-            st.markdown(analysis)
+            # Display analysis result
+            st.write(analysis)
         else:
-            # Display error if no text was extracted
-            st.error("No text extracted from the file.")
+            # Display error if text extraction failed
+            st.error("Could not extract text.")
 
 # Standard Python idiom to run main function
 if __name__ == "__main__":

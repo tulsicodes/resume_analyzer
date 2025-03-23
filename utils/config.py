@@ -9,8 +9,14 @@ load_dotenv()
 class Config:
     """Configuration class to manage application settings and environment variables."""
     
-    # Class variable to store GROQ API key from environment
+    # Class variable for Groq API key from environment variables
     GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+    
+    # Class variable defining directory path for log files
+    LOG_DIR = "data/logs"
+    
+    # Class variable defining path to prompts JSON file
+    PROMPTS_FILE = "data/prompts.json"
 
     @staticmethod
     def validate():
@@ -21,5 +27,5 @@ class Config:
         """
         # Check if GROQ_API_KEY is unset or empty
         if not Config.GROQ_API_KEY:
-            # Raise an error if the key is missing
+            # Raise an error if the API key is missing
             raise ValueError("GROQ_API_KEY is not set in the .env file")
